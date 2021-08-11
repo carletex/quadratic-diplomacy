@@ -64,27 +64,33 @@ export default function QuadraticDiplomacyUI({
 
   const handleSubmitVote = async() => {
     // Question: Do we need to send separate transactions for each vote?
-    for (const contributorAddress of Object.keys(selectedContributors)) {
-      await tx(writeContracts.QuadraticDiplomacyContract.vote(
-        selectedContributors[contributorAddress].name,
-        contributorAddress,
-        selectedContributors[contributorAddress].voteTokens,
-      ), update => {
-        console.log("📡 Transaction Update:", update);
-        if (update && (update.status === "confirmed" || update.status === 1)) {
-          console.log(" 🍾 Transaction " + update.hash + " finished!");
-          console.log(
-            " ⛽️ " +
-            update.gasUsed +
-            "/" +
-            (update.gasLimit || update.gas) +
-            " @ " +
-            parseFloat(update.gasPrice) / 1000000000 +
-            " gwei",
-          );
-        }
-      });
-    }
+    const pairs = Object.keys(selectedContributors).reduce((pairsAccumulator, contributor) => {
+      pairsAccumulator.contributors.push(contributor)
+      pairsAccumulator.votes.push(selectedContributors[contributor].voteTokens)
+      return pairsAccumulator
+    }, {
+      contributors: [],
+      votes: []
+    })
+    
+    await tx(writeContracts.QuadraticDiplomacyContract.vote(
+      pairs.contributors,
+      pairs.votes,
+    ), update => {
+      console.log("📡 Transaction Update:", update);
+      if (update && (update.status === "confirmed" || update.status === 1)) {
+        console.log(" 🍾 Transaction " + update.hash + " finished!");
+        console.log(
+          " ⛽️ " +
+          update.gasUsed +
+          "/" +
+          (update.gasLimit || update.gas) +
+          " @ " +
+          parseFloat(update.gasPrice) / 1000000000 +
+          " gwei",
+        );
+      }
+    });
 
     setCurrentPage(3);
   }
