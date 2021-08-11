@@ -1,40 +1,73 @@
-pragma solidity >=0.8.0 <0.9.0;
 //SPDX-License-Identifier: MIT
+pragma solidity >=0.6.0 <0.8.0;
 
-contract QuadraticDiplomacyContract {
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
-    event Vote(address votingAddress, string name, address wallet, uint256 amount);
+// import "./mocks/mockDAO.sol";
+
+contract QuadraticDiplomacyContract is Ownable, AccessControl {
+    event Vote(address votingAddress, address wallet, uint256 amount);
     event AddEntry(address admin, string name, address wallet);
 
-    mapping (address => uint256) public votes;
-    mapping (address => bool) public isAdmin;
+    uint256 constant VOTE_ALLOCATION = 10;
+    bytes32 public constant VOTER_ROLE = keccak256("VOTER_ROLE");
 
-    constructor(address startingAdmin) {
-        isAdmin[startingAdmin] = true;
-    }
+    mapping(address => uint256) public votes;
 
-    modifier onlyAdmin() {
-        require( isAdmin[msg.sender], "NOT ADMIN");
+    modifier canVote() {
+        require(
+            hasRole(VOTER_ROLE, msg.sender),
+            "You don't have the permission to vote."
+        );
+        require(votes[msg.sender] > 0, "No more vote points left");
         _;
     }
 
-    // Question: Can we pass an array of on memory structs with name / wallet / address tuples?
-    // so we only need to make 1 tx?
-    function vote(string memory name, address wallet, uint256 amount) public {
-        require(votes[msg.sender] >= amount, "Not enough votes left");
-        votes[msg.sender] -= amount;
-        emit Vote(msg.sender, name, wallet, amount);
+    modifier matchingWalletAmountRatio(
+        address[] memory members,
+        uint256[] memory _votes
+    ) {
+        require(
+            members.length == _votes.length,
+            "Mismatching address to votes ratio"
+        );
+        _;
     }
 
-    function admin(address wallet, bool value) public onlyAdmin {
-        isAdmin[wallet] = value;
+    constructor(address admin) public {
+        // todo: setup admin as well?
+        _setupRole(DEFAULT_ADMIN_ROLE, admin); // admin role access (different from Owner)
+        _setupRole(VOTER_ROLE, admin); // voter role access
+        transferOwnership(admin); // transfer contract ownership to specified admin
     }
 
-    function giveVotes(address wallet, uint256 amount) public onlyAdmin {
+    function vote(address[] memory members, uint256[] memory _votes)
+        public
+        canVote
+        matchingWalletAmountRatio(members, _votes)
+    {
+        for (uint256 i = 0; i < members.length; i++) {
+            uint256 currentVote = _votes[i];
+            address currentMember = members[i];
+            require(votes[msg.sender] >= currentVote, "Not enough votes left");
+
+            votes[msg.sender] -= currentVote;
+
+            emit Vote(msg.sender, currentMember, currentVote);
+        }
+    }
+
+    function addVoter(address member) public onlyOwner {
+        grantRole(VOTER_ROLE, member);
+        giveVotes(member, VOTE_ALLOCATION);
+    }
+
+    function giveVotes(address wallet, uint256 amount) public onlyOwner {
         votes[wallet] += amount;
     }
 
-    function addEntry(string memory name, address wallet) public onlyAdmin {
+    function addEntry(string memory name, address wallet) public onlyOwner {
         emit AddEntry(msg.sender, name, wallet);
     }
 }
