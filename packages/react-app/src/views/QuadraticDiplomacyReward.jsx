@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Button, Card, Divider, Space, Typography, Badge, notification } from "antd";
-import { Address, EtherInput } from "../components";
+import { Address, EtherInput, SpiderChart } from "../components";
 const { Text, Title } = Typography;
 const { ethers } = require("ethers");
 
@@ -14,6 +14,7 @@ export default function QuadraticDiplomacyReward({ userSigner, votesEntries, con
   const [rewardAmount, setRewardAmount] = useState(0);
   const [rewardStatus, setRewardStatus] = useState({});
   const [totalSquare, setTotalSquare] = useState(0);
+  const [chartData, setChartData] = useState([[], []]);
 
   const [voteResults, totalSqrtVotes] = useMemo(() => {
     const votes = {};
@@ -43,8 +44,17 @@ export default function QuadraticDiplomacyReward({ userSigner, votesEntries, con
       total += Math.pow(sqrtVote, 2);
     });
 
-    setTotalSquare(total);
+    setChartData(
+      Object.entries(votes).reduce(
+        (tupleArray, [_, tuple]) => [
+          [...tupleArray[0], tuple.name],
+          [...tupleArray[1], parseFloat(tuple.sqrtVote)],
+        ],
+        [[], []],
+      ),
+    );
 
+    setTotalSquare(total);
     return [votes, sqrts];
   }, [votesEntries]);
 
@@ -115,8 +125,7 @@ export default function QuadraticDiplomacyReward({ userSigner, votesEntries, con
           <Title level={5}>Pending votes from</Title>
           {missingVotingMembers.map(entry => (
             <p key={entry.wallet}>
-              <Address address={entry.wallet} fontSize={16} size="short" />{" "}
-              (<Text type="danger">{entry.name}</Text>)
+              <Address address={entry.wallet} fontSize={16} size="short" /> (<Text type="danger">{entry.name}</Text>)
             </p>
           ))}
         </>
@@ -158,6 +167,7 @@ export default function QuadraticDiplomacyReward({ userSigner, votesEntries, con
         })}
       </Space>
       <Divider />
+      <SpiderChart data={chartData[1]} names={chartData[0]} title="SqrVotes" chartType="area" />
     </div>
   );
 }
