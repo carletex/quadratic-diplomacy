@@ -10,6 +10,7 @@ const REWARD_STATUS = {
   COMPLETED: "reward_status.completed",
   FAILED: "reward_status.failed",
 };
+<<<<<<< HEAD
 const columns = [
   {
     title: "Name",
@@ -66,6 +67,15 @@ export default function QuadraticDiplomacyReward({
   const [rewardStatus, setRewardStatus] = useState(REWARD_STATUS.PENDING);
 
   const [voteResults, totalVotes, totalSqrtVotes, totalSquare] = useMemo(() => {
+=======
+
+export default function QuadraticDiplomacyReward({ userSigner, votesEntries, contributorEntries, price, isAdmin, mainnetProvider }) {
+  const [rewardAmount, setRewardAmount] = useState(0);
+  const [rewardStatus, setRewardStatus] = useState({});
+  const [totalSquare, setTotalSquare] = useState(0);
+
+  const [voteResults, totalVotes, totalSqrtVotes] = useMemo(() => {
+>>>>>>> origin/master
     const votes = {};
     let voteCount = 0;
     let sqrts = 0;
@@ -93,11 +103,21 @@ export default function QuadraticDiplomacyReward({
       sqrts += sqrtVote;
     });
 
+<<<<<<< HEAD
+=======
+    let total = 0;
+>>>>>>> origin/master
     Object.entries(votes).forEach(([wallet, { sqrtVote }]) => {
       total += Math.pow(sqrtVote, 2);
     });
 
+<<<<<<< HEAD
     return [votes, voteCount, sqrts, total];
+=======
+    setTotalSquare(total);
+
+    return [votes, voteCount, sqrts];
+>>>>>>> origin/master
   }, [votesEntries]);
 
   const dataSource = useMemo(
@@ -160,11 +180,24 @@ export default function QuadraticDiplomacyReward({
       <Title level={3}>Reward Contributors</Title>
       <Title level={5}>
         Total votes:&nbsp;&nbsp;
+<<<<<<< HEAD
         <Tag color="#000000">{totalVotes}</Tag>
       </Title>
       <Title level={5}>
         Total Quadratic votes:&nbsp;&nbsp;
         <Tag color="#52c41a">{totalSqrtVotes.toFixed(2)}</Tag>
+=======
+        <Badge showZero overflowCount={100000} count={totalVotes} style={{ backgroundColor: "#000000" }} />
+      </Title>
+      <Title level={5}>
+        Total Quadratic votes:&nbsp;&nbsp;
+        <Badge
+          showZero
+          overflowCount={100000}
+          count={totalSqrtVotes.toFixed(2)}
+          style={{ backgroundColor: "#52c41a" }}
+        />
+>>>>>>> origin/master
       </Title>
       <Divider />
       <Row justify="center">
@@ -179,6 +212,7 @@ export default function QuadraticDiplomacyReward({
         </Col>
       </Row>
       <Divider />
+<<<<<<< HEAD
       <Space direction="vertical" style={{ width: "100%" }}>
         {missingVotingMembers?.length > 0 && (
           <Alert
@@ -188,6 +222,45 @@ export default function QuadraticDiplomacyReward({
             description={missingVotingMembers.map(entry => (
               <p key={entry.wallet}>
                 <Address address={entry.wallet} fontSize={16} size="short" /> (<Text type="danger">{entry.name}</Text>)
+=======
+      {missingVotingMembers?.length > 0 && (
+        <>
+          <Title level={5}>Pending votes from</Title>
+          {missingVotingMembers.map(entry => (
+            <p key={entry.wallet}>
+              <Address address={entry.wallet} fontSize={16} size="short" ensProvider={mainnetProvider} />
+            </p>
+          ))}
+        </>
+      )}
+      <Space direction="vertical" style={{ width: "100%" }}>
+        {Object.entries(voteResults).map(([address, contributor]) => {
+          const contributorShare = Math.pow(contributor.sqrtVote, 2) / totalSquare;
+          const contributorReward = contributorShare * rewardAmount;
+
+          return (
+            <Card
+              title={<Address address={address} fontSize={16} size="short" ensProvider={mainnetProvider} />}
+              extra={
+                <Button
+                  onClick={() => handlePayment(address, contributorReward)}
+                  disabled={
+                    (rewardStatus[address] && rewardStatus[address] !== REWARD_STATUS.FAILED) || !contributorReward
+                  }
+                >
+                  Pay 💸
+                </Button>
+              }
+              key={address}
+            >
+              <p>
+                <strong>Votes: </strong>
+                {contributor.vote}
+              </p>
+              <p>
+                <strong>Quadratic votes: </strong>
+                {contributor.sqrtVote.toFixed(2)} <Text type="secondary">({(contributorShare * 100).toFixed(2)}%)</Text>
+>>>>>>> origin/master
               </p>
             ))}
           ></Alert>
