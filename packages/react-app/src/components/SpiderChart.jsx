@@ -4,7 +4,7 @@ import HighchartsReact from "highcharts-react-official";
 import HighchartMore from "highcharts/highcharts-more";
 HighchartMore(Highcharts);
 
-const getOptions = (title, data, names, chartType) => ({
+const getOptions = (title, data, names, chartType, subtitle) => ({
   chart: {
     polar: true,
   },
@@ -16,12 +16,17 @@ const getOptions = (title, data, names, chartType) => ({
       enableMouseTracking: false,
     },
   },
+
+  legend: {
+    enabled: false,
+  },
+
   title: {
     text: title,
   },
 
   subtitle: {
-    text: "Polar also known as Radar Chart",
+    text: subtitle,
   },
 
   xAxis: {
@@ -42,11 +47,11 @@ const getOptions = (title, data, names, chartType) => ({
   ],
 });
 
-const SpiderChart = ({ data, names, title, chartType }) => {
+const SpiderChart = ({ data, names, title, chartType, subtitle }) => {
   const [options, setoptions] = React.useState(getOptions(title, data, names, chartType));
 
   React.useEffect(() => {
-    setoptions(getOptions(title, data, names, chartType));
+    setoptions(getOptions(title, data, names, chartType, subtitle));
   }, [data, names]);
   return <HighchartsReact highcharts={Highcharts} options={options} />;
 };
