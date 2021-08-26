@@ -4,7 +4,14 @@ import { SmileTwoTone, LikeTwoTone, CheckCircleTwoTone, MinusOutlined, PlusOutli
 import { Address } from "../components";
 const { Title, Text } = Typography;
 
-export default function QuadraticDiplomacyVote({ voteCredits, contributorEntries, tx, writeContracts, isVoter }) {
+export default function QuadraticDiplomacyVote({
+  voteCredits,
+  contributorEntries,
+  tx,
+  writeContracts,
+  isVoter,
+  mainnetProvider,
+}) {
   const [selectedContributors, setSelectedContributors] = useState({});
   const [currentStep, setCurrentStep] = useState(1);
   const [spentVoteTokens, setSpentVoteTokens] = useState(0);
@@ -15,10 +22,7 @@ export default function QuadraticDiplomacyVote({ voteCredits, contributorEntries
   const contributors = useMemo(
     () =>
       contributorEntries.reduce((entries, current) => {
-        entries[current.wallet] = {
-          name: current.name,
-          voteTokens: 0,
-        };
+        entries[current.wallet] = 0;
         return entries;
       }, {}),
     [contributorEntries],
@@ -39,7 +43,7 @@ export default function QuadraticDiplomacyVote({ voteCredits, contributorEntries
 
   const handleContributorSelection = (e, contributorAddress) => {
     setSelectedContributors(prevSelectedContributors => {
-      if (prevSelectedContributors[contributorAddress]) {
+      if (prevSelectedContributors[contributorAddress] !== undefined) {
         const state = { ...prevSelectedContributors };
         delete state[contributorAddress];
         return state;
@@ -59,28 +63,23 @@ export default function QuadraticDiplomacyVote({ voteCredits, contributorEntries
     // update contributor vote tokens
     setSelectedContributors(prevSelectedContributors => ({
       ...prevSelectedContributors,
-      [clickedContributorAddress]: {
-        ...prevSelectedContributors[clickedContributorAddress],
-        voteTokens:
-          op === "add"
-            ? Math.min(prevSelectedContributors[clickedContributorAddress].voteTokens + 1, availableVoteTokens)
-            : Math.max(prevSelectedContributors[clickedContributorAddress].voteTokens - 1, 0),
-      },
+      [clickedContributorAddress]:
+        op === "add"
+          ? Math.min(prevSelectedContributors[clickedContributorAddress] + 1, availableVoteTokens)
+          : Math.max(prevSelectedContributors[clickedContributorAddress] - 1, 0),
     }));
   };
 
   const handleSubmitVotes = async () => {
-    const names = [],
-      wallets = [],
-      amounts = [];
+    const wallets = [];
+    const amounts = [];
 
-    Object.entries(selectedContributors).forEach(([contributorAddress, { name, voteTokens }]) => {
-      names.push(name);
+    Object.entries(selectedContributors).forEach(([contributorAddress, voteTokens]) => {
       wallets.push(contributorAddress);
       amounts.push(voteTokens);
     });
 
-    await tx(writeContracts.QuadraticDiplomacyContract.voteMultiple(names, wallets, amounts), update => {
+    await tx(writeContracts.QuadraticDiplomacyContract.voteMultiple(wallets, amounts), update => {
       if (update && (update.status === "confirmed" || update.status === 1)) {
         setCurrentStep(3);
         setSpentVoteTokens(0);
@@ -109,6 +108,7 @@ export default function QuadraticDiplomacyVote({ voteCredits, contributorEntries
           size="small"
           itemLayout="horizontal"
           header={<Title level={4}>1. Who've you been working with?</Title>}
+          style={{ width: "400px", margin: "0 auto" }}
           footer={
             <Button
               type="primary"
@@ -119,7 +119,7 @@ export default function QuadraticDiplomacyVote({ voteCredits, contributorEntries
             </Button>
           }
           dataSource={Object.entries(contributors)}
-          renderItem={([contributorAddress, contributor], index) => (
+          renderItem={([contributorAddress, votes], index) => (
             <>
               {index === 0 && (
                 <List.Item>
@@ -136,11 +136,11 @@ export default function QuadraticDiplomacyVote({ voteCredits, contributorEntries
                 <Checkbox
                   size="large"
                   onClick={e => handleContributorSelection(e, contributorAddress)}
-                  checked={selectedContributors[contributorAddress]}
+                  checked={selectedContributors[contributorAddress] !== undefined}
+                  style={{ color: "black" }}
                 >
-                  {contributor.name}
+                  <Address address={contributorAddress} ensProvider={mainnetProvider} fontSize={16} size="short" />
                 </Checkbox>
-                <Address address={contributorAddress} fontSize={16} size="short" />
               </List.Item>
             </>
           )}
@@ -149,6 +149,7 @@ export default function QuadraticDiplomacyVote({ voteCredits, contributorEntries
         <List
           size="large"
           itemLayout="horizontal"
+          style={{ width: "400px", margin: "0 auto" }}
           header={
             <Space direction="vertical">
               <Title level={4}>2. Allocate votes</Title>
@@ -177,9 +178,9 @@ export default function QuadraticDiplomacyVote({ voteCredits, contributorEntries
               <Badge.Ribbon
                 showZero
                 overflowCount={1000}
-                text={<Title level={5}>{contributor.voteTokens} </Title>}
+                text={<Title level={5}>{contributor} </Title>}
                 style={{
-                  backgroundColor: contributor.voteTokens ? "#eb2f96" : "grey",
+                  backgroundColor: contributor ? "#eb2f96" : "grey",
                   height: 24,
                   width: 30,
                   marginRight: -5,
@@ -193,7 +194,7 @@ export default function QuadraticDiplomacyVote({ voteCredits, contributorEntries
                       danger
                       ghost
                       onClick={e => handleContributorVote(e, "remove", contributorAddress)}
-                      disabled={!contributor.voteTokens}
+                      disabled={!contributor}
                     >
                       <MinusOutlined />
                     </Button>
@@ -209,8 +210,9 @@ export default function QuadraticDiplomacyVote({ voteCredits, contributorEntries
                 }
               >
                 <List.Item.Meta
-                  avatar={<Address address={contributorAddress} fontSize={14} size="short" />}
-                  title={<strong>{contributor.name}</strong>}
+                  avatar={
+                    <Address address={contributorAddress} fontSize={14} size="short" ensProvider={mainnetProvider} />
+                  }
                 />
               </List.Item>
             </>
@@ -222,10 +224,9 @@ export default function QuadraticDiplomacyVote({ voteCredits, contributorEntries
             <Title level={3}>Thank you for voting.</Title>
             <p>The allocation to this workstream will be informed by your votes. See you next month!</p>
             <Title level={4}>Your votes:</Title>
-            {Object.entries(selectedContributors).map(([contributorAddress, { name, voteTokens }]) => (
+            {Object.entries(selectedContributors).map(([contributorAddress, voteTokens]) => (
               <p key={contributorAddress}>
-                <Address address={contributorAddress} fontSize={16} size="short" />{" "}
-                <Text strong>{name}</Text>: <Text>{voteTokens}</Text>
+                <Address address={contributorAddress} fontSize={16} size="short" ensProvider={mainnetProvider} /> (<Text>{voteTokens}</Text>)
               </p>
             ))}
           </>

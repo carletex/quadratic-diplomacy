@@ -65,35 +65,39 @@ export default function QuadraticDiplomacyReward({
   const [totalRewardAmount, setTotalRewardAmount] = useState(0);
   const [rewardStatus, setRewardStatus] = useState(REWARD_STATUS.PENDING);
 
-  const [voteResults, totalSqrtVotes, totalSquare] = useMemo(() => {
+  const [voteResults, totalVotes, totalSqrtVotes, totalSquare] = useMemo(() => {
     const votes = {};
+    let voteCount = 0;
     let sqrts = 0;
     let total = 0;
     votesEntries.forEach(entry => {
-      const sqrtVote = Math.sqrt(entry.amount.toNumber());
+      const vote = entry.amount.toNumber();
+      const sqrtVote = Math.sqrt(vote);
       if (!votes[entry.wallet]) {
         votes[entry.wallet] = {
-          name: entry.name,
+          vote: 0,
           // Sum of the square root of the votes for each member.
           sqrtVote: 0,
           hasVoted: false,
         };
       }
       votes[entry.wallet].sqrtVote += sqrtVote;
+      votes[entry.wallet].vote += vote;
 
       if (!votes[entry.wallet].hasVoted) {
         votes[entry.wallet].hasVoted = entry.votingAddress === entry.wallet;
       }
 
+      voteCount += vote;
       // Total sum of the sum of the square roots of the votes for all members.
       sqrts += sqrtVote;
     });
 
-    Object.entries(votes).forEach(([wallet, { name, sqrtVote }]) => {
+    Object.entries(votes).forEach(([wallet, { sqrtVote }]) => {
       total += Math.pow(sqrtVote, 2);
     });
 
-    return [votes, sqrts, total];
+    return [votes, voteCount, sqrts, total];
   }, [votesEntries]);
 
   const dataSource = useMemo(
@@ -155,8 +159,12 @@ export default function QuadraticDiplomacyReward({
     <div style={{ border: "1px solid #cccccc", padding: 16, width: 1000, margin: "auto", marginTop: 64 }}>
       <Title level={3}>Reward Contributors</Title>
       <Title level={5}>
-        Total sqrt votes:&nbsp;&nbsp;
-        <Tag color="green">{totalSqrtVotes.toFixed(2)}</Tag>
+        Total votes:&nbsp;&nbsp;
+        <Tag color="#000000">{totalVotes}</Tag>
+      </Title>
+      <Title level={5}>
+        Total Quadratic votes:&nbsp;&nbsp;
+        <Tag color="#52c41a">{totalSqrtVotes.toFixed(2)}</Tag>
       </Title>
       <Divider />
       <Row justify="center">
