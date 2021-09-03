@@ -10,7 +10,7 @@ contract QuadraticDiplomacyContract is Distributor, AccessControl {
     event AddMember(address admin, address wallet);
     event NewElection(uint256 blockNumber);
 
-    bytes32 public constant VOTER_ROLE = keccak256("VOTER_ROLE");
+    bytes32 public voter_role_key;
 
     mapping(address => uint256) public votes;
 
@@ -19,7 +19,12 @@ contract QuadraticDiplomacyContract is Distributor, AccessControl {
     constructor(address startingAdmin) public {
         _setupRole(DEFAULT_ADMIN_ROLE, startingAdmin);
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        currentElectionStartBlock = block.number; 
+        currentElectionStartBlock = block.number;
+        resetVoterRoleKey();
+    }
+
+    function resetVoterRoleKey() private {
+        voter_role_key = keccak256(abi.encode(block.number));
     }
 
     modifier onlyAdmin() {
@@ -29,7 +34,7 @@ contract QuadraticDiplomacyContract is Distributor, AccessControl {
 
     modifier canVote() {
         require(
-            hasRole(VOTER_ROLE, msg.sender),
+            hasRole(voter_role_key, msg.sender),
             "You don't have the permission to vote."
         );
         _;
@@ -39,13 +44,7 @@ contract QuadraticDiplomacyContract is Distributor, AccessControl {
         _;
 
         // remove all voter roles
-        // an alternative (and less gas heavy?) way to do this would be to change the VOTER_ROLE to keccak256(abi.encodePacked(block.number));
-
-        uint256 memberCount = getRoleMemberCount(VOTER_ROLE);
-        for (uint256 i = 0; i < memberCount; i++) {
-            revokeRole(VOTER_ROLE, getRoleMember(VOTER_ROLE, 0));
-        }
-
+        resetVoterRoleKey();
         currentElectionStartBlock = block.number;
         emit NewElection(block.number);
     }
@@ -81,7 +80,7 @@ contract QuadraticDiplomacyContract is Distributor, AccessControl {
 
     function addSingleMemberWithVotes(address wallet, uint256 voteAmount) public onlyAdmin {
         votes[wallet] = voteAmount;
-        grantRole(VOTER_ROLE, wallet);
+        grantRole(voter_role_key, wallet);
         emit AddMember(msg.sender, wallet);
     }
 

@@ -185,7 +185,7 @@ function App() {
     "currentElectionStartBlock",
   );
   const voteCredits = useContractReader(readContracts, "QuadraticDiplomacyContract", "votes", [address]);
-  const voterRole = useContractReader(readContracts, "QuadraticDiplomacyContract", "VOTER_ROLE");
+  const voterRole = useContractReader(readContracts, "QuadraticDiplomacyContract", "voter_role_key");
   const adminRole = useContractReader(readContracts, "QuadraticDiplomacyContract", "DEFAULT_ADMIN_ROLE");
   const isAdmin = useContractReader(readContracts, "QuadraticDiplomacyContract", "hasRole", [adminRole, address]);
   const isVoter = useContractReader(readContracts, "QuadraticDiplomacyContract", "hasRole", [voterRole, address]);
