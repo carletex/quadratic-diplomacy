@@ -5,6 +5,7 @@ import { DeleteOutlined } from "@ant-design/icons";
 import { AddressInput } from "../components";
 const { Title } = Typography;
 const axios = require("axios");
+const { ethers } = require("ethers");
 
 export default function QuadraticDiplomacyCreate({
   mainnetProvider,
@@ -27,7 +28,14 @@ export default function QuadraticDiplomacyCreate({
       setVoters([]);
     }
     addresses.forEach(voteAddress => {
-      setVoters(prevVoters => [...prevVoters, voteAddress]);
+      try {
+        const voteAddressWithChecksum = ethers.utils.getAddress(voteAddress);
+        if (!voters.includes(voteAddressWithChecksum)) {
+          setVoters(prevVoters => [...prevVoters, voteAddressWithChecksum]);
+        }
+      } catch (error) {
+        console.log(error);
+      }
     });
   };
 
